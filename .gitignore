@@ -1,0 +1,13 @@
+# Virtual environment
+venv/
+
+# Compiled Python files
+__pycache__/
+*.pyc
+
+# Environment variable file
+.env
+
+# Protocol Buffer generated files
+protos/*.py
+service/*.py

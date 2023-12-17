@@ -1,0 +1,36 @@
+syntax = "proto3";
+package subscription;
+
+
+// Define the message for the request to create, delete, modify, or get subscription details
+message SubscriptionRequest {
+    // Existing fields
+    int32 subscription_id = 1;
+
+    // New fields based on the MySQL subscription table schema
+    int32 user_id = 2;
+    int32 product_id = 3;
+    string start_date = 4;
+    string end_date = 5;
+    string status = 6;
+}
+
+message SubscriptionResponse {
+    // Existing fields
+    int32 subscription_id = 1;
+
+    // New fields based on the MySQL subscription table schema
+    int32 user_id = 2;
+    int32 product_id = 3;
+    string start_date = 4;
+    string end_date = 5;
+    string status = 6;
+}
+
+// Define the service with APIs for subscription operations
+service SubscriptionService {
+  rpc CreateSubscription (SubscriptionRequest) returns (SubscriptionResponse);
+  rpc DeleteSubscription (SubscriptionRequest) returns (SubscriptionResponse);
+  rpc ModifySubscription (SubscriptionRequest) returns (SubscriptionResponse);
+  rpc GetSubscriptionDetails (SubscriptionRequest) returns (SubscriptionResponse);
+}
