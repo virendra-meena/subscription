@@ -7,7 +7,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 
 import logging
 
-from service.subscription import Subscription, create_subscription_response
+from service.subscription import Subscription
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ class SubscriptionServicer(SubscriptionServiceServicer):
             result = self.mysql_client.get_subscription(subscription.subscription_id)
             subscription.subscription_id = result[0]
 
-            return create_subscription_response(subscription)
+            return subscription.to_proto()
         
         except self.mysql_client.Error as e:
             context.set_details(f"MySQL error: {e}")
@@ -66,7 +66,7 @@ class SubscriptionServicer(SubscriptionServiceServicer):
 
             self.mysql_client.update_subscription(subscription)
             
-            return create_subscription_response(subscription)
+            return subscription.to_proto()
 
         except self.mysql_client.Error as e:
             context.set_details(f"MySQL error: {e}")
@@ -95,8 +95,7 @@ class SubscriptionServicer(SubscriptionServiceServicer):
             return subscription_pb2.SubscriptionResponse()
 
         # Create and return response from subscription object
-        response = create_subscription_response(subscription)
-        return response
+        return subscription.to_proto()
 
 
 
