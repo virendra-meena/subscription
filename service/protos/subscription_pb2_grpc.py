@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-from protos import subscription_pb2 as protos_dot_subscription__pb2
+from service.protos import subscription_pb2 as protos_dot_subscription__pb2
 
 
 class SubscriptionServiceStub(object):

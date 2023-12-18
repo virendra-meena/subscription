@@ -27,7 +27,7 @@ def fetch_subscription():
 @app.route('/create_subscription', methods=['GET', 'POST'])
 def create_subscription():
     if request.method == 'POST':
-        subscription_id = request.form['subscription_id']
+        subscription_id = int(request.form['subscription_id'])
 
         # gRPC request to create a new subscription
         request_data = SubscriptionRequest(subscription_id=subscription_id)

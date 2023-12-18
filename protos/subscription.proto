@@ -1,6 +1,7 @@
 syntax = "proto3";
 package subscription;
 
+import "google/protobuf/timestamp.proto";  // Import timestamp.proto
 
 // Define the message for the request to create, delete, modify, or get subscription details
 message SubscriptionRequest {
@@ -10,9 +11,9 @@ message SubscriptionRequest {
     // New fields based on the MySQL subscription table schema
     int32 user_id = 2;
     int32 product_id = 3;
-    string start_date = 4;
-    string end_date = 5;
-    string status = 6;
+    google.protobuf.Timestamp start_date = 4;
+    google.protobuf.Timestamp end_date = 5;
+    Status status = 6;
 }
 
 message SubscriptionResponse {
@@ -22,9 +23,15 @@ message SubscriptionResponse {
     // New fields based on the MySQL subscription table schema
     int32 user_id = 2;
     int32 product_id = 3;
-    string start_date = 4;
-    string end_date = 5;
-    string status = 6;
+    google.protobuf.Timestamp start_date = 4;
+    google.protobuf.Timestamp end_date = 5;
+    Status status = 6;
+}
+
+// Enum for status
+enum Status {
+  ACTIVE = 0;
+  INACTIVE = 1;
 }
 
 // Define the service with APIs for subscription operations
