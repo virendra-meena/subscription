@@ -10,4 +10,7 @@ __pycache__/
 
 # Protocol Buffer generated files
 protos/*.py
-service/*.py
+service/protos/*.py
+
+# vscode settings
+*.vscode/
