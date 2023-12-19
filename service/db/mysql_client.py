@@ -48,30 +48,24 @@ All database errors are handled and logged.
 import logging
 import mysql.connector
 from mysql.connector import pooling
-
-# Reuse database connections
-dbconfig = {
-    "host": "localhost",
-    "user": "root",
-    "password": "Database@1990",
-    "database": "virendra_meena"
-}
-
-connection_pool = mysql.connector.pooling.MySQLConnectionPool(
-    pool_name="database_pool",
-    pool_size=5,
-    **dbconfig
-)
+import mysql.connector
 
 # Prepare statements
 insert_subscription = "INSERT INTO subscription (user_id, product_id, start_date, end_date, status) VALUES (%s, %s, %s, %s, %s)"
 get_subscription = "SELECT subscription_id, status FROM subscription WHERE subscription_id=%s"
 update_subscription = "UPDATE subscription SET user_id=%s, product_id=%s, start_date=%s, end_date=%s, status=%s WHERE subscription_id=%s"
 
+class MySQLError(Exception):
+    pass
 
 class MySQLClient:
+    def __init__(self, dbconfig):
 
-    def __init__(self):
+        connection_pool = mysql.connector.pooling.MySQLConnectionPool(
+        pool_name="database_pool",
+        pool_size=5,
+        **dbconfig)
+
         self.conn = connection_pool.get_connection()
         self.cursor = self.conn.cursor(prepared=True)
 
@@ -93,7 +87,7 @@ class MySQLClient:
             self.cursor.execute("COMMIT")
         except Exception as e:
             self.logger.error("Error executing batch queries: %s", e)
-            raise
+            raise e
 
     def create_subscription(self, subscription):
         try:
@@ -102,7 +96,7 @@ class MySQLClient:
             self.cursor.execute(insert_subscription, params)
         except Exception as e:
             self.logger.error("Error creating subscription: %s", e)
-            raise
+            raise e
 
     def get_subscription(self, subscription_id):
         try:
@@ -110,7 +104,7 @@ class MySQLClient:
             return self.cursor.fetchone()
         except Exception as e:
             self.logger.error("Error getting subscription: %s", e)
-            raise
+            raise e
 
     def update_subscription(self, subscription):
         try:
@@ -120,7 +114,7 @@ class MySQLClient:
             self.cursor.execute(update_subscription, params)
         except Exception as e:
             self.logger.error("Error updating subscription: %s", e)
-            raise
+            raise e
 
     # Return connection to pool
     def __del__(self):

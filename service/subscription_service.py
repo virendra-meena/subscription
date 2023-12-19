@@ -1,42 +1,52 @@
 import grpc
-from service.db.mysql_client import MySQLClient
+from service.db.mysql_client import MySQLClient, MySQLError
 from service.protos import subscription_pb2
 from service.protos.subscription_pb2_grpc import SubscriptionServiceServicer
 import datetime
-from google.protobuf.timestamp_pb2 import Timestamp 
+from google.protobuf.timestamp_pb2 import Timestamp
 
 import logging
 
 from service.subscription import Subscription
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# Reuse database connections
+dbconfig = {
+    "host": "localhost",
+    "user": "root",
+    "password": "Database@1990",
+    "database": "virendra_meena"
+}
 
 class SubscriptionServicer(SubscriptionServiceServicer):
 
     def __init__(self):
-        self.mysql_client = MySQLClient()
+        self.mysql_client = MySQLClient(dbconfig)
 
     def CreateSubscription(self, request, context):
         try:
             subscription = Subscription(
-                subscription_id=0, # Auto incremented
+                subscription_id=0,  # Auto incremented
                 user_id=request.user_id,
                 product_id=request.product_id,
                 start_date=request.start_date.ToDatetime(),
                 end_date=request.end_date.ToDatetime(),
-                status=request.status
+                status=get_status(request.status)
             )
 
             self.mysql_client.create_subscription(subscription)
 
             # Retrieve auto-generated id
-            result = self.mysql_client.get_subscription(subscription.subscription_id)
+            result = self.mysql_client.get_subscription(
+                subscription.subscription_id)
             subscription.subscription_id = result[0]
 
             return subscription.to_proto()
-        
-        except self.mysql_client.Error as e:
+
+        except MySQLError as e:
             context.set_details(f"MySQL error: {e}")
             context.set_code(grpc.StatusCode.INTERNAL)
             return subscription_pb2.SubscriptionResponse()
@@ -48,7 +58,7 @@ class SubscriptionServicer(SubscriptionServiceServicer):
                 subscription_id=request.subscription_id
             )
 
-        except self.mysql_client.Error as e:
+        except MySQLError as e:
             context.set_details(f"MySQL error: {e}")
             context.set_code(grpc.StatusCode.INTERNAL)
             return subscription_pb2.SubscriptionResponse()
@@ -61,14 +71,14 @@ class SubscriptionServicer(SubscriptionServiceServicer):
                 product_id=request.product_id,
                 start_date=request.start_date.ToDatetime(),
                 end_date=request.end_date.ToDatetime(),
-                status=request.status
+                status=get_status(request.status)
             )
 
             self.mysql_client.update_subscription(subscription)
-            
+
             return subscription.to_proto()
 
-        except self.mysql_client.Error as e:
+        except MySQLError as e:
             context.set_details(f"MySQL error: {e}")
             context.set_code(grpc.StatusCode.INTERNAL)
             return subscription_pb2.SubscriptionResponse()
@@ -77,20 +87,22 @@ class SubscriptionServicer(SubscriptionServiceServicer):
         logger.info(f"Received GetSubscriptionDetails request: {request}")
         # Your existing code here
         # fetch subscription details from mysql client using subscription_id of request.
-        
+
         try:
-            subscription = self.mysql_client.get_subscription_by_id(request.subscription_id)
-        except MySQLClient.Error as e:
+            subscription = self.mysql_client.get_subscription(
+                request.subscription_id)
+        except MySQLError as e:
             # Set gRPC error details and code
             context.set_details(f'Failed to get subscription: {e}')
             context.set_code(grpc.StatusCode.INTERNAL)
-            
+
             # Return empty response
             return subscription_pb2.SubscriptionResponse()
 
         if not subscription:
             # Subscription not found
-            context.set_details(f'Subscription with id {request.subscription_id} not found') 
+            context.set_details(
+                f'Subscription with id {request.subscription_id} not found')
             context.set_code(grpc.StatusCode.NOT_FOUND)
             return subscription_pb2.SubscriptionResponse()
 
@@ -98,40 +110,8 @@ class SubscriptionServicer(SubscriptionServiceServicer):
         return subscription.to_proto()
 
 
-
-def create_dummy_subscription_response():
-
-  response = subscription_pb2.SubscriptionResponse()
-
-  response.subscription_id = get_dummy_subscription_id()
-  response.user_id = get_dummy_user_id()
-  response.product_id = get_dummy_product_id()
-  
-  response.start_date.CopyFrom(get_dummy_start_date())
-  response.end_date.CopyFrom(get_dummy_end_date())
-
-  response.status = get_dummy_status()
-
-  return response
-
-def get_dummy_subscription_id():
-  return 123
-
-def get_dummy_user_id():
-  return 456
-
-def get_dummy_product_id():
-  return 789
-
-def get_dummy_start_date():
-  start_date = Timestamp()
-  start_date.FromDatetime(datetime.datetime(2020, 1, 1))
-  return start_date
-
-def get_dummy_end_date():
-  end_date = Timestamp()
-  end_date.FromDatetime(datetime.datetime(2020, 12, 31))
-  return end_date  
-
-def get_dummy_status():
-  return subscription_pb2.ACTIVE
+def get_status(status_value):
+    if status_value == 1:
+        return "INACTIVE"
+    else:
+        return "ACTIVE"

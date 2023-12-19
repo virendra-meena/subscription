@@ -15,10 +15,22 @@ def index():
 
 @app.route('/fetch_subscription', methods=['POST'])
 def fetch_subscription():
-    subscription_id = int(request.form['subscription_id'])
+
+    # Get subscription details from form
+    user_id = int(request.form['user_id'])
+    product_id = int(request.form['product_id'])  
+    start_date = request.form['start_date']
+    end_date = request.form['end_date']
+    status = request.form['status']
 
     # gRPC request
-    request_data = SubscriptionRequest(subscription_id=subscription_id)
+    request_data = SubscriptionRequest(
+        user_id=user_id,
+        product_id=product_id,
+        start_date=start_date, # TODO: convert to timestamp
+        end_date=end_date, # TODO: convert to timestamp
+        status=status
+    )
     response = stub.GetSubscriptionDetails(request_data)
 
     # Pass the response to the template
@@ -27,14 +39,26 @@ def fetch_subscription():
 @app.route('/create_subscription', methods=['GET', 'POST'])
 def create_subscription():
     if request.method == 'POST':
-        subscription_id = int(request.form['subscription_id'])
+        # Get subscription details from form
+        user_id = int(request.form['user_id'])
+        product_id = int(request.form['product_id'])  
+        start_date = request.form['start_date']
+        end_date = request.form['end_date']
+        status = request.form['status']
 
-        # gRPC request to create a new subscription
-        request_data = SubscriptionRequest(subscription_id=subscription_id)
+        # gRPC request
+        request_data = SubscriptionRequest(
+            user_id=user_id,
+            product_id=product_id,
+            start_date=start_date, # TODO: convert to timestamp
+            end_date=end_date, # TODO: convert to timestamp
+            status=status
+        )
+        
         response = stub.CreateSubscription(request_data)
 
-        # Redirect to a page displaying the newly created subscription
-        return redirect(url_for('fetch_subscription', subscription_id=subscription_id))
+        # Pass the response to the template
+        return render_template('result.html', subscription=response)
 
     return render_template('create_subscription.html')
 

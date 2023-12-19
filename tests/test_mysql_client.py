@@ -54,10 +54,18 @@ python -m unittest Tests.test_mysql_client.TestMySQLClient.test_method
 Where test_method is the name of the specific test case.
 """
 
+# Reuse database connections
+dbconfig = {
+    "host": "localhost",
+    "user": "root",
+    "password": "Database@1990",
+    "database": "test_subscription_db"
+}
+
 class TestMySQLClient(unittest.TestCase):
 
     def setUp(self):
-        self.client = MySQLClient()
+        self.client = MySQLClient(dbconfig)
 
     def tearDown(self):
         # Clean up data after each test
@@ -65,6 +73,7 @@ class TestMySQLClient(unittest.TestCase):
 
     def test_create_and_get_subscription(self):
         sub = Subscription(
+            subscription_id=0,  # not used
             user_id=1,
             product_id=2,
             start_date=datetime(2020, 1, 1),
@@ -76,29 +85,28 @@ class TestMySQLClient(unittest.TestCase):
         result = self.client.get_subscription(sub.subscription_id)
         self.assertEqual(result[1], 'active')
 
-    # def test_update_subscription(self):
-    #     # Create subscription
-    #     sub = Subscription(
-    #         user_id=1,
-    #         product_id=2,
-    #         start_date=datetime(2020, 1, 1),
-    #         end_date=datetime(2020, 12, 31),
-    #         status='active'
-    #     )
-    #     self.client.create_subscription(sub)
+    def test_update_subscription(self):
+        # Create subscription
+        sub = Subscription(
+            subscription_id=0,  # not used
+            user_id=1,
+            product_id=2,
+            start_date=datetime(2020, 1, 1),
+            end_date=datetime(2020, 12, 31),
+            status='active'
+        )
+        self.client.create_subscription(sub)
 
-    #     # Update status
-    #     sub.status = 'inactive'
-    #     self.client.update_subscription(sub)
+        # Update status
+        sub.status = 'inactive'
+        self.client.update_subscription(sub)
 
-    #     # Verify update
-    #     result = self.client.get_subscription(sub.subscription_id)
-    #     self.assertEqual(result[1], 'inactive')
+        # Verify update
+        result = self.client.get_subscription(sub.subscription_id)
+        self.assertEqual(result[1], 'inactive')
 
     # Add other test cases
 
 
 if __name__ == '__main__':
-
-
     unittest.main()
