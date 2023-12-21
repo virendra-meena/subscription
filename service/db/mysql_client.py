@@ -55,16 +55,18 @@ insert_subscription = "INSERT INTO subscription (user_id, product_id, start_date
 get_subscription = "SELECT subscription_id, status FROM subscription WHERE subscription_id=%s"
 update_subscription = "UPDATE subscription SET user_id=%s, product_id=%s, start_date=%s, end_date=%s, status=%s WHERE subscription_id=%s"
 
+
 class MySQLError(Exception):
     pass
+
 
 class MySQLClient:
     def __init__(self, dbconfig):
 
         connection_pool = mysql.connector.pooling.MySQLConnectionPool(
-        pool_name="database_pool",
-        pool_size=5,
-        **dbconfig)
+            pool_name="database_pool",
+            pool_size=5,
+            **dbconfig)
 
         self.conn = connection_pool.get_connection()
         self.cursor = self.conn.cursor(prepared=True)

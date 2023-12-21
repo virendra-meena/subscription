@@ -1,5 +1,6 @@
 import grpc
 from service.db.mysql_client import MySQLClient, MySQLError
+from service.db.mysql_client_2  import create_subscription, delete_subscription, modify_subscription
 from service.protos import subscription_pb2
 from service.protos.subscription_pb2_grpc import SubscriptionServiceServicer
 import datetime
@@ -37,7 +38,7 @@ class SubscriptionServicer(SubscriptionServiceServicer):
                 status=get_status(request.status)
             )
 
-            self.mysql_client.create_subscription(subscription)
+            create_subscription(subscription)
 
             # Retrieve auto-generated id
             result = self.mysql_client.get_subscription(
@@ -112,6 +113,6 @@ class SubscriptionServicer(SubscriptionServiceServicer):
 
 def get_status(status_value):
     if status_value == 1:
-        return "INACTIVE"
+        return "inactive"
     else:
-        return "ACTIVE"
+        return "active"

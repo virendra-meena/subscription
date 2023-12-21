@@ -30,8 +30,8 @@ message SubscriptionResponse {
 
 // Enum for status
 enum Status {
-  ACTIVE = 0;
-  INACTIVE = 1;
+  active = 0;
+  inactive = 1;
 }
 
 // Define the service with APIs for subscription operations

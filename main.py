@@ -7,7 +7,7 @@ sys.path.insert(0, service_dir)
 import grpc
 from concurrent import futures
 from service.protos import subscription_pb2_grpc
-from service.subscription_service import SubscriptionServicer
+from service.subscription_service_2 import SubscriptionServicer
 import logging
 
 def serve():
