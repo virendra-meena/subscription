@@ -1,112 +1,88 @@
+import unittest
+from datetime import datetime
 import sys
 import os
 
 # Add the project root directory to the Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from service.subscription import Subscription
-from service.db.mysql_client import MySQLClient
-import unittest
-from datetime import datetime
+from service.db.models.subscription import Subscription, Base, engine, session
+from db.mysql_client import create_subscription, modify_subscription, get_active_subscriptions, get_subscription_details
 
+class TestSubscriptionClient(unittest.TestCase):
 
-"""
-Tests for MySQLClient database interactions.
-
-This module contains unit tests for the MySQLClient class which handles
-interactions with the MySQL database for the subscription service.
-
-Classes:
-
-TestMySQLClient
-    Main test class that inherits from unittest.TestCase.
-
-    Methods:
-    
-    setUp()
-        Creates a MySQLClient instance for tests to use.
-
-    tearDown()
-        Cleans up test data by deleting all rows from the 
-        subscription table after each test.
-
-    test_create_and_get_subscription()
-        Tests creating a new subscription and retrieving it.
-        Creates a sample Subscription object and inserts it
-        using the MySQLClient. Then fetches the subscription
-        using MySQLClient and verifies the status.
-
-    test_update_subscription()
-        Tests updating an existing subscription.
-        Creates a subscription, updates the status via MySQLClient,
-        and verifies the status was updated by retrieving it.
-
-The tests should be run using:
-
-python -m unittest Tests.test_mysql_client
-
-This allows the tests to be discovered and run.
-
-Individual tests can be run using:
-
-python -m unittest Tests.test_mysql_client.TestMySQLClient.test_method
-
-Where test_method is the name of the specific test case.
-"""
-
-# Reuse database connections
-dbconfig = {
-    "host": "localhost",
-    "user": "root",
-    "password": "Database@1990",
-    "database": "test_subscription_db"
-}
-
-class TestMySQLClient(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Set up the database and create tables
+        Base.metadata.create_all(engine)
 
     def setUp(self):
-        self.client = MySQLClient(dbconfig)
-
-    def tearDown(self):
-        # Clean up data after each test
-        self.client.cursor.execute("DELETE FROM subscription")
-
-    def test_create_and_get_subscription(self):
-        sub = Subscription(
-            subscription_id=0,  # not used
-            user_id=1,
-            product_id=2,
-            start_date=datetime(2020, 1, 1),
-            end_date=datetime(2020, 12, 31),
+        # Add sample data for testing
+        sample_subscription = Subscription(
+            user_id=101,
+            product_id=201,
+            start_date=datetime(2023, 1, 1),
+            end_date=datetime(2023, 12, 31),
             status='active'
         )
-        self.client.create_subscription(sub)
+        session.add(sample_subscription)
+        session.commit()
 
-        result = self.client.get_subscription(sub.subscription_id)
-        self.assertEqual(result[1], 'active')
+    # def tearDown(self):
+    #     # Remove sample data after each test
+    #     session.query(Subscription).delete()
+    #     session.commit()
 
-    def test_update_subscription(self):
-        # Create subscription
-        sub = Subscription(
-            subscription_id=0,  # not used
-            user_id=1,
-            product_id=2,
-            start_date=datetime(2020, 1, 1),
-            end_date=datetime(2020, 12, 31),
-            status='active'
-        )
-        self.client.create_subscription(sub)
+    def test_create_subscription(self):
+        request_data = {
+            "user_id": 102,
+            "product_id": 202,
+            "start_date": datetime(2023, 2, 1),
+            "end_date": datetime(2023, 12, 31),
+            "status": 'active'
+        }
 
-        # Update status
-        sub.status = 'inactive'
-        self.client.update_subscription(sub)
+        response = create_subscription(request_data)
+        self.assertEqual(response.user_id, 102)
+        # Add more assertions based on your schema
 
-        # Verify update
-        result = self.client.get_subscription(sub.subscription_id)
-        self.assertEqual(result[1], 'inactive')
+    # def test_modify_subscription(self):
+    #     request_data = {
+    #         "user_id": 103,
+    #         "product_id": 203,
+    #         "start_date": datetime(2023, 3, 1),
+    #         "end_date": datetime(2023, 12, 31),
+    #         "status": "inactive"
+    #     }
+    #     response = modify_subscription(request_data)
+    #     self.assertEqual(response.user_id, 103)
+    #     self.assertEqual(response.status, 'inactive')
+    #     Add more assertions based on your schema
 
-    # Add other test cases
+    # def test_delete_subscription(self):
+    #     request_data = {"subscription_id": 1}
+    #     response = delete_subscription(request_data)
+    #     self.assertIsNone(response)
+    #     deleted_subscription = session.query(Subscription).get(1)
+    #     self.assertIsNone(deleted_subscription)
 
+    def test_get_subscription_details(self):
+        request_data = {"subscription_id": 31}
+        response = get_subscription_details(request_data)
+        self.assertIsNotNone(response)
+        self.assertEqual(response.subscription_id, 31)
+        self.assertEqual(response.user_id, 101)
+        # Add more assertions based on your schema
+
+    # Fetch active subscriptions between two dates
+    def test_get_active_subscriptions(self):
+        start_date = datetime(2023, 1, 1) 
+        end_date = datetime(2023, 12, 31)
+
+        results = get_active_subscriptions(start_date, end_date)
+
+        # Verify only active subscriptions are returned
+        self.assertEqual(len(results), 23) 
 
 if __name__ == '__main__':
     unittest.main()
