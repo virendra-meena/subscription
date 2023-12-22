@@ -28,7 +28,9 @@ def fetch_subscription():
     if 'end_date' in request.form:
         request_data.end_date.FromDatetime(datetime.datetime.strptime(request.form['end_date'], "%Y-%m-%d"))
     
-    request_data.status = Status.Value(request.form['status'].upper())
+    if 'status' in request.form:
+        request_data.status = Status.ACTIVE if request.form['status'] == "active" else Status.INACTIVE
+
     response = stub.GetSubscriptionDetails(request_data)
 
     # Pass the response to the template
@@ -48,7 +50,9 @@ def create_subscription():
         if 'end_date' in request.form:
             request_data.end_date.FromDatetime(datetime.datetime.strptime(request.form['end_date'], "%Y-%m-%d"))
         
-        request_data.status = Status.Value(request.form['status'].upper())
+        if 'status' in request.form:
+            request_data.status = Status.ACTIVE if request.form['status'] == "active" else Status.INACTIVE
+        
         response = stub.CreateSubscription(request_data)
 
         # Pass the response to the template

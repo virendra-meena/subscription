@@ -1,6 +1,9 @@
 from service.db.models.subscription import Subscription, session
 from datetime import datetime
 
+from service.utils.logging import log_function_errors, logger
+
+@log_function_errors(logger)
 def create_subscription(request):
     if not isinstance(request, dict):
         raise ValueError("Request must be a dict")
@@ -19,6 +22,7 @@ def create_subscription(request):
 
     return new_subscription
 
+@log_function_errors(logger)
 def modify_subscription(request):
     existing_subscription = session.query(Subscription).filter_by(
         subscription_id=request.subscription_id).first()
@@ -33,6 +37,7 @@ def modify_subscription(request):
     else:
         return None
 
+@log_function_errors(logger)
 def delete_subscription(request):
     existing_subscription = session.query(Subscription).filter_by(
         subscription_id=request.subscription_id).first()
@@ -43,7 +48,7 @@ def delete_subscription(request):
     else:
         return None
 
-
+@log_function_errors(logger)
 def get_subscription_details(request):
   if not isinstance(request, dict):
     raise TypeError("Request must be a dict")
@@ -56,18 +61,28 @@ def get_subscription_details(request):
     filters['product_id'] = request['product_id']
 
   if 'start_date' in request and 'end_date' in request:
-    if request['start_date'] and request['end_date']:
-      filters['start_date'] = (Subscription.start_date >= request['start_date']) & (
-          Subscription.start_date <= request['end_date'])
+    start_date = datetime.fromisoformat(request['start_date'])
+    end_date = datetime.fromisoformat(request['end_date']) 
+
+    # # Add time comparision filters
+    # if request['start_date'] and request['end_date']:
+    #   filters['start_date'] = (Subscription.start_date >= start_date) & (
+    #       Subscription.start_date <= end_date) & (
+    #           Subscription.end_date >= end_date)
 
   try:
-    result = session.query(Subscription).filter_by(**filters).first()
+    result = session.query(Subscription).filter_by(**filters).filter(
+       (Subscription.start_date >= start_date) & (
+          Subscription.start_date <= end_date) & (
+              Subscription.end_date <= end_date )).all()
+    
     return result
   except Exception as e:
     print("Error fetching subscription: ", e)
     return None
 
 
+@log_function_errors(logger)
 def get_active_subscriptions(start_date, end_date):
     # Retrieve active subscriptions within a specified date range
     return session.query(Subscription).filter(

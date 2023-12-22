@@ -8,29 +8,12 @@ from datetime import datetime, timezone
 from google.protobuf.timestamp_pb2 import Timestamp
 from google.protobuf.json_format import MessageToDict
 
-import logging
-
 from service.db.models.subscription import Subscription
-
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
-def log_function_errors(logger):
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            try:
-                return func(*args, **kwargs)
-            except Exception as e:
-                logger.exception(f"Error in function {func.__name__}: {str(e)}")
-                raise e
-
-        return wrapper
-
-    return decorator
+from service.utils.logging import log_function_errors, logger
 
 class SubscriptionServicer(SubscriptionServiceServicer):
 
+    @log_function_errors(logger)
     def CreateSubscription(self, request, context):
         try:
             subscription_request_dict = MessageToDict(request, preserving_proto_field_name=True)
@@ -43,6 +26,7 @@ class SubscriptionServicer(SubscriptionServiceServicer):
             context.set_code(grpc.StatusCode.INTERNAL)
             return subscription_pb2.SubscriptionResponse()
 
+    @log_function_errors(logger)
     def DeleteSubscription(self, request, context):
         try:
             subscription_request_dict = MessageToDict(request, preserving_proto_field_name=True)
@@ -54,6 +38,7 @@ class SubscriptionServicer(SubscriptionServiceServicer):
             context.set_code(grpc.StatusCode.INTERNAL)
             return subscription_pb2.SubscriptionResponse()
 
+    @log_function_errors(logger)
     def ModifySubscription(self, request, context):
         try:
             subscription_request_dict = MessageToDict(request, preserving_proto_field_name=True)
@@ -65,6 +50,7 @@ class SubscriptionServicer(SubscriptionServiceServicer):
             context.set_code(grpc.StatusCode.INTERNAL)
             return subscription_pb2.SubscriptionResponse()
 
+    @log_function_errors(logger)
     def GetSubscriptionDetails(self, request, context):
         logger.info(f"Received GetSubscriptionDetails request: {request}")
         # Your existing code here
@@ -73,7 +59,7 @@ class SubscriptionServicer(SubscriptionServiceServicer):
         try:
             subscription_request_dict = MessageToDict(request, preserving_proto_field_name=True)
             response = get_subscription_details(subscription_request_dict)
-            return convert_to_proto(response)
+            return convert_list_to_proto(response)
 
         except Exception as e:
             # Set gRPC error details and code
@@ -105,11 +91,21 @@ def convert_to_proto(subscription):
         datetime.combine(subscription.end_date, datetime.min.time()).astimezone(timezone.utc)  
     )
 
-
     # Map Enum field 'status'
-    if subscription.status == 'active':
-        subscription_proto.status = Status.active
-    elif subscription.status == 'inactive':
-        subscription_proto.status = Status.inactive
+    if subscription.status == 'active' or subscription.status == 'active'.upper:
+        subscription_proto.status = Status.ACTIVE
+    else:
+        subscription_proto.status = Status.INACTIVE
 
     return subscription_proto
+
+@log_function_errors(logger)
+def convert_list_to_proto(subscriptions):
+    # Create a list to store SubscriptionResponse instances
+    subscription_protos = []
+
+    for subscription in subscriptions:
+        # Append the current SubscriptionResponse to the list
+        subscription_protos.append(convert_to_proto(subscription))
+
+    return subscription_protos
