@@ -5,9 +5,13 @@ from service.protos import subscription_pb2_grpc
 from service.protos.subscription_pb2 import SubscriptionRequest, Status
 from google.protobuf.timestamp_pb2 import Timestamp
 import datetime
+import logging
 
 app = Flask(__name__)
 app.secret_key = 'subscription@1990'  # Change this to a strong, random key
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
 
 # gRPC connection setup
 channel = grpc.insecure_channel('localhost:50051')
@@ -15,69 +19,113 @@ stub = subscription_pb2_grpc.SubscriptionServiceStub(channel)
 
 # OAuth configuration for Google Sign-In
 oauth = OAuth(app)
+
 # google = oauth.remote_app(
 #     'google',
 #     consumer_key="312190595659-g00t00mvim46a6ma7llkqtauol8dk5ml.apps.googleusercontent.com",
 #     consumer_secret="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",
-#     request_token_params={'scope': 'email profile'},
+#     request_token_params={'scope': "https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"},
 #     base_url='https://www.googleapis.com/plus/v1/',
 #     request_token_url=None,
 #     access_token_method='POST',
 #     access_token_url='https://accounts.google.com/o/oauth2/token',
-#     authorize_url='https://accounts.google.com/o/oauth2/auth',
+#     authorize_url='https://accounts.google.com/o/oauth2/auth',  
 # )
 
-google = OAuthRemoteApp(
-    oauth,
+google = oauth.remote_app(
     'google',
     consumer_key="312190595659-g00t00mvim46a6ma7llkqtauol8dk5ml.apps.googleusercontent.com",
     consumer_secret="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",
-    request_token_params={'scope': 'email profile'},
-    base_url='https://www.googleapis.com/plus/v1/',
+    request_token_params={'scope': "email profile"},
+    base_url='https://www.googleapis.com/oauth2/v1/',
     request_token_url=None,
     access_token_method='POST',
     access_token_url='https://accounts.google.com/o/oauth2/token',
-    authorize_url='https://accounts.google.com/o/oauth2/auth',  
+    authorize_url='https://accounts.google.com/o/oauth2/auth',
 )
 
+# Additional configuration for the userinfo endpoint
+google.userinfo = 'https://www.googleapis.com/oauth2/v1/userinfo'
+
+# Callback to load user info from the session
+@google.tokengetter
+def get_google_oauth_token(token=None):
+    logging.debug(f"OAuth token retrieved: {token}")
+    return session.get('google_token')
+
+# Index route - Check if user is logged in
+@app.route('/')
+def index():
+    if 'google_token' in session:
+        return render_template('home.html', email=session.get('google_email'))
+    return render_template('index.html')
+
+# Home route - Display welcome page
+@app.route('/home')
+def home():
+    if 'google_token' not in session:
+        return redirect(url_for('login_google'))
+    return render_template('home.html', email=session.get('google_email', 'Unknown'))
+
+# Register route
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        # Extract user registration data
+        full_name = request.form['full_name']
+        email = request.form['email']
+        password = request.form['password']
+        gender = request.form['gender']
+
+        # Perform user registration logic here
+
+        # Redirect to home or login page after registration
+        return redirect(url_for('index'))
+
+    # Render the registration form for GET requests
+    return render_template('register.html')
+
+# Logout route - Log the user out
+@app.route('/logout')
+def logout():
+    session.pop('google_token', None)
+    session.pop('google_email', None)
+    return redirect(url_for('index'))
+
+# generic Sign-in route
 @app.route('/login')
 def login():
-    return google.authorize(callback=url_for('authorized', _external=True))
+    callback = url_for('authorized', _external=True)
+    logging.debug(f"Initiating OAuth flow. Callback URL: {callback}")
+    return google.authorize(callback=callback)
+
+# Google Sign-In route
+@app.route('/login/google')
+def login_google():
+    callback = url_for('authorized_google', _external=True)
+    logging.debug(f"Initiating Google OAuth flow. Callback URL: {callback}")
+    return google.authorize(callback=callback, prompt='select_account')
 
 @app.route('/login/authorized')
 def authorized():
     resp = google.authorized_response()
+    logging.debug(f"OAuth response: {resp}")
     if resp is None or resp.get('access_token') is None:
         return 'Access denied: reason={} error={}'.format(
             request.args['error_reason'],
             request.args['error_description']
         )
     session['google_token'] = (resp['access_token'], '')
-    user_info = google.get('userinfo')
+    user_info = google.get('people/me')
+    #user_info = google.get('https://www.googleapis.com/userinfo/v2/me')
     return 'Logged in as: ' + user_info.data['name']
-
-# # Callback to load user info from the session
-# @oauth.tokengetter
-# def get_google_oauth_token():
-#     return session.get('google_token')
-
-
-# Index route - Check if user is logged in
-@app.route('/')
-def index():
-    if 'google_token' in session:
-        return 'Logged in as: ' + session['google_email']
-    return 'You are not logged in.'
-
-# Google Sign-In route
-@app.route('/login/google')
-def login_google():
-    return google.authorize(callback=url_for('authorized_google', _external=True))
 
 # Callback route for handling Google authorization
 @app.route('/login/google/callback')
 def authorized_google():
+    logging.debug(f"google object info: {google}")
     response = google.authorized_response()
+    logging.debug(f"Google OAuth response: {response}")
 
     if response is None or response.get('access_token') is None:
         return 'Access denied: reason={} error={}'.format(
@@ -85,16 +133,17 @@ def authorized_google():
             request.args['error_description']
         )
 
-    # Get user info from Google API
-    user_info = google.get('people/me')
+    session['google_token'] = (response['access_token'], '')
+    # # Get user info from Google API
+    user_info = google.get('https://people.googleapis.com/v1/people/me?personFields=names,emailAddresses')
+    logging.debug(f"Google user info: {user_info.data}")
 
-    # Extract user data as needed
-    user_id = user_info.data['id']
-    user_email = user_info.data['emails'][0]['value']
+    # # Extract user data as needed
+            # Extract the email from user_info
+    user_email = user_info.data.get('emailAddresses', [{}])[0].get('value', '')
 
     # Store user info or perform user registration as needed
     # You can use user_id and user_email to identify users
-    session['google_token'] = (response['access_token'], '')
     session['google_email'] = user_email
 
     return redirect(url_for('index'))

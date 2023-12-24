@@ -1,68 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Subscription Management System</title>
+    <title>Welcome to Subscription Management System</title>
     <style>
         body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
         }
 
         header {
             background-color: #333;
-            color: #fff;
+            color: white;
+            padding: 1em;
             text-align: center;
-            padding: 10px;
         }
 
         nav {
-            background-color: #f2f2f2;
+            background-color: #4CAF50;
             overflow: hidden;
-        }
-
-        nav ul {
-            list-style-type: none;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            display: flex;
+            display: flex; /* Added display: flex */
             justify-content: space-around; /* Adjust as needed */
         }
 
-        nav li {
-            display: inline-block;
-            vertical-align: middle;
-        }
-
         nav a {
+            /* float: left; Remove float */
             display: block;
+            color: white;
+            text-align: center;
             padding: 14px 16px;
             text-decoration: none;
-            color: #333;
         }
 
         nav a:hover {
             background-color: #ddd;
+            color: black;
         }
 
         section {
             padding: 20px;
+            text-align: center;
         }
 
         footer {
             background-color: #333;
-            color: #fff;
+            color: white;
             text-align: center;
-            padding: 10px;
+            padding: 1em;
             position: fixed;
             bottom: 0;
             width: 100%;
         }
     </style>
 </head>
+
 <body>
     <header>
         <h1>Welcome to Subscription Management System</h1>
@@ -72,21 +67,19 @@
         <ul>
             <li><a href="{{ url_for('create_subscription') }}">Create Subscriptions</a></li>
             <li><a href="{{ url_for('fetch_subscription') }}">Fetch Subscriptions</a></li>
-            {% if 'google_token' in session %}
-                <li><a href="{{ url_for('logout') }}">Logout</a></li>
-            {% else %}
-                <li><a href="{{ url_for('login_google') }}">Login with Google</a></li>
-            {% endif %}
-            <li><a href="{{ url_for('register') }}">Register with Email</a></li>
+            <li><a href="{{ url_for('logout') }}">Logout</a></li>
         </ul>
     </nav>
 
     <section>
-        <!-- Add additional content here if needed -->
+        <h2>Hello, {{ email }}!</h2>
+        <p>Manage your subscriptions with ease.</p>
+        <p>Explore the options in the navigation menu.</p>
     </section>
 
     <footer>
-        <!-- Add footer content if needed -->
+        &copy; 2023 Subscription Management System
     </footer>
 </body>
+
 </html>
